@@ -1,0 +1,251 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>CRAZY-JEW 3D</title>
+  <link id="-gd-engine-icon" rel="icon" type="image/jpeg" href="assets/loading.jpg">
+  <link rel="apple-touch-icon" href="assets/loading.jpg">
+  <style>
+    html, body, #canvas {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      cursor: url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto !important;
+    }
+    body {
+      color: white;
+      background: #000;
+      overflow: hidden;
+      touch-action: none;
+      font-family: Arial, sans-serif;
+    }
+    #canvas {
+      display: block;
+    }
+    #canvas:focus {
+      outline: none;
+    }
+    * {
+      cursor: url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto !important;
+    }
+    #status, #status-splash, #status-progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+    }
+    #status, #status-splash {
+      top: 0;
+      bottom: 0;
+    }
+    #status {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      visibility: hidden;
+    }
+    #status-splash {
+      max-height: 100%;
+      max-width: 100%;
+      margin: auto;
+    }
+    #status-splash.fullsize--true {
+      height: 100%;
+      width: 100%;
+      object-fit: contain;
+    }
+    #status-progress, #status-notice {
+      display: none;
+    }
+    #status-progress {
+      bottom: 10%;
+      width: 50%;
+      margin: 0 auto;
+    }
+    #status-notice {
+      background: #5b3943;
+      border-radius: 0.5rem;
+      border: 1px solid #9b3943;
+      color: #e0e0e0;
+      line-height: 1.3;
+      margin: 0 2rem;
+      overflow: hidden;
+      padding: 1rem;
+      text-align: center;
+      z-index: 1;
+    }
+    #hint {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 5;
+      color: #bbb;
+      font-size: 12px;
+      background: rgba(0,0,0,0.65);
+      padding: 8px 10px;
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas">Your browser does not support the canvas tag.</canvas>
+  <noscript>Your browser does not support JavaScript.</noscript>
+
+  <div id="status">
+    <img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="assets/loading.jpg" alt="">
+    <progress id="status-progress"></progress>
+    <div id="status-notice"></div>
+  </div>
+  <div id="hint">If you still see the old sky/title: DevTools â†’ Application â†’ Storage â†’ Clear site data, then reload this page.</div>
+
+  <script src="engine/CrazyCattle3D.js?v=1"></script>
+  <script>
+    const CUSTOM_CURSOR = 'url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto';
+    function applyCustomCursor() {
+      document.documentElement.style.setProperty("cursor", CUSTOM_CURSOR, "important");
+      document.body.style.setProperty("cursor", CUSTOM_CURSOR, "important");
+      const canvas = document.getElementById("canvas");
+      if (canvas) canvas.style.setProperty("cursor", CUSTOM_CURSOR, "important");
+    }
+    applyCustomCursor();
+    setInterval(applyCustomCursor, 500);
+
+    const PCK_SIZE = 55007297;
+    const WASM_SIZE = 43444261;
+    // Brand-new pack URL â€” Chrome cannot reuse the old CrazyCattle3D.pck cache entry.
+    const MAIN_PACK = "engine/CrazyJew3D.pck";
+
+    const GODOT_CONFIG = {
+      args: [],
+      canvasResizePolicy: 2,
+      ensureCrossOriginIsolationHeaders: false,
+      executable: "engine/CrazyCattle3D",
+      mainPack: MAIN_PACK,
+      experimentalVK: false,
+      fileSizes: {
+        [MAIN_PACK]: PCK_SIZE,
+        "engine/CrazyCattle3D.wasm": WASM_SIZE
+      },
+      focusCanvas: true,
+      gdextensionLibs: [],
+      serviceWorker: null
+    };
+
+    const GODOT_THREADS_ENABLED = false;
+    const engine = new Engine(GODOT_CONFIG);
+
+    function deleteDb(name) {
+      return new Promise((resolve) => {
+        try {
+          const req = indexedDB.deleteDatabase(name);
+          req.onsuccess = req.onerror = req.onblocked = () => resolve();
+        } catch (_) {
+          resolve();
+        }
+      });
+    }
+
+    async function bustCaches() {
+      // Unregister any service workers for this origin
+      try {
+        if (navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+      } catch (_) {}
+
+      try {
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch (_) {}
+
+      // Chrome / Edge: wipe Godot IDBFS + any other DBs on this origin
+      const known = ["/userfs", "userfs", "godot-userfs", "Godot", "emscripten"];
+      try {
+        if (indexedDB.databases) {
+          const dbs = await indexedDB.databases();
+          for (const d of dbs || []) {
+            if (d && d.name) known.push(d.name);
+          }
+        }
+      } catch (_) {}
+      await Promise.all([...new Set(known)].map(deleteDb));
+    }
+
+    (function () {
+      const statusOverlay = document.getElementById("status");
+      const statusProgress = document.getElementById("status-progress");
+      const statusNotice = document.getElementById("status-notice");
+      const hint = document.getElementById("hint");
+
+      let initializing = true;
+      let statusMode = "";
+
+      function setStatusMode(mode) {
+        if (statusMode === mode || !initializing) return;
+        if (mode === "hidden") {
+          statusOverlay.remove();
+          if (hint) hint.remove();
+          initializing = false;
+          return;
+        }
+        statusOverlay.style.visibility = "visible";
+        statusProgress.style.display = mode === "progress" ? "block" : "none";
+        statusNotice.style.display = mode === "notice" ? "block" : "none";
+        statusMode = mode;
+      }
+
+      function setStatusNotice(text) {
+        statusNotice.textContent = "";
+        String(text).split("\n").forEach((line) => {
+          statusNotice.appendChild(document.createTextNode(line));
+          statusNotice.appendChild(document.createElement("br"));
+        });
+      }
+
+      function displayFailureNotice(err) {
+        console.error(err);
+        if (err instanceof Error) setStatusNotice(err.message);
+        else if (typeof err === "string") setStatusNotice(err);
+        else setStatusNotice("An unknown error occurred.");
+        setStatusMode("notice");
+        initializing = false;
+      }
+
+      const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+      if (missing.length !== 0) {
+        displayFailureNotice(
+          "Error\nThe following features required to run this game are missing:\n" +
+            missing.join("\n")
+        );
+        return;
+      }
+
+      setStatusMode("progress");
+      bustCaches()
+        .catch(() => {})
+        .then(() =>
+          engine.startGame({
+            onProgress(current, total) {
+              if (current > 0 && total > 0) {
+                statusProgress.value = current;
+                statusProgress.max = total;
+              } else {
+                statusProgress.removeAttribute("value");
+                statusProgress.removeAttribute("max");
+              }
+            }
+          })
+        )
+        .then(() => setStatusMode("hidden"), displayFailureNotice);
+    })();
+  </script>
+</body>
+</html>
+
