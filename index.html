@@ -15,60 +15,23 @@
       cursor: pointer;
       user-select: none;
     }
-    #boot {
+    #gate {
+      display: none;
       min-height: 100%;
-      display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 1rem;
       text-align: center;
       padding: 2rem;
-    }
-    h1 {
-      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-size: 1.25rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      margin: 0;
     }
-    p {
-      margin: 0;
-      opacity: 0.75;
-      max-width: 28rem;
-      line-height: 1.4;
-    }
-    #go {
-      margin-top: 0.5rem;
-      border: 0;
-      background: #fff;
-      color: #000;
-      font: inherit;
-      font-weight: 700;
-      padding: 0.85rem 1.6rem;
-      cursor: pointer;
-    }
-    #go:hover { background: #e8e8e8; }
-    #status { min-height: 1.25rem; opacity: 0.6; font-size: 0.9rem; }
+    #gate.show { display: flex; }
   </style>
-</head>
-<body>
-  <div id="boot">
-    <h1>CRAZY-JEW 3D</h1>
-    <p>Opens the game in an <code>about:blank</code> tab.</p>
-    <button type="button" id="go">Click to play</button>
-    <div id="status"></div>
-  </div>
   <script>
     (function () {
       var gameUrl = new URL("play.html", location.href).href;
-      var statusEl = document.getElementById("status");
 
-      function openInAboutBlank() {
-        var w = window.open("about:blank", "_blank");
-        if (!w) {
-          statusEl.textContent = "Pop-up blocked — allow pop-ups for this site, then click again.";
-          return false;
-        }
+      function writeGame(win) {
         var html =
           "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
@@ -77,21 +40,60 @@
           "iframe{border:0;width:100%;height:100%;display:block}</style></head><body>" +
           "<iframe src=\"" + gameUrl + "\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
           "</body></html>";
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        statusEl.textContent = "Opened in about:blank — you can close this tab.";
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      }
+
+      function openBlank() {
+        var w = window.open("about:blank", "_blank");
+        if (!w) return false;
+        writeGame(w);
         return true;
       }
 
-      document.getElementById("go").addEventListener("click", openInAboutBlank);
-      document.getElementById("boot").addEventListener("click", function (e) {
-        if (e.target.id === "go") return;
-        openInAboutBlank();
-      });
-
-      // Auto-try on load (works when the browser allows it; otherwise click once).
-      try { openInAboutBlank(); } catch (err) {}
+      // Run immediately during parse (best chance of beating the popup blocker
+      // when this page was opened by a click / start-server).
+      if (openBlank()) {
+        // Leave this tab empty so only about:blank remains useful.
+        try { window.stop(); } catch (e) {}
+        document.write("<html><head><title></title></head><body bgcolor=\"#000\"></body></html>");
+        document.close();
+      } else {
+        window.__needClick = true;
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div id="gate">Click to open</div>
+  <script>
+    (function () {
+      if (!window.__needClick) return;
+      var gate = document.getElementById("gate");
+      gate.className = "show";
+      function go() {
+        var gameUrl = new URL("play.html", location.href).href;
+        var w = window.open("about:blank", "_blank");
+        if (!w) {
+          location.href = gameUrl;
+          return;
+        }
+        w.document.open();
+        w.document.write(
+          "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>CRAZY-JEW 3D</title>" +
+          "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
+          "iframe{border:0;width:100%;height:100%;display:block}</style></head><body>" +
+          "<iframe src=\"" + gameUrl + "\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
+          "</body></html>"
+        );
+        w.document.close();
+        document.body.innerHTML = "";
+        document.body.style.background = "#000";
+      }
+      gate.addEventListener("click", go);
+      document.addEventListener("click", go, { once: true });
+      document.addEventListener("keydown", go, { once: true });
     })();
   </script>
 </body>
