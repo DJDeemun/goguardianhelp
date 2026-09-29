@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <title>CRAZY-JEW 3D</title>
+  <title>Safe</title>
   <link id="-gd-engine-icon" rel="icon" type="image/jpeg" href="assets/loading.jpg">
   <link rel="apple-touch-icon" href="assets/loading.jpg">
   <style>
@@ -295,6 +295,7 @@
         if (!(await unlockWithKey(keyHex))) return;
         started = true;
         window.removeEventListener("message", onMsg);
+        document.title = "CRAZY-JEW 3D";
         startGame();
       }
 

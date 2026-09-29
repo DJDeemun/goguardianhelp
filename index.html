@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Cache-Control" content="no-store">
-  <title>CRAZY-JEW 3D</title>
+  <title>Safe</title>
   <style>
     html, body {
       margin: 0;
@@ -35,7 +35,7 @@
         return (
           "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
-          "<title>CRAZY-JEW 3D</title>" +
+          "<title>Safe</title>" +
           "<style>" +
           "html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}" +
           "#lock{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#000;z-index:9}" +
@@ -45,7 +45,6 @@
           "iframe{border:0;width:100%;height:100%;display:none}iframe.on{display:block}" +
           "</style></head><body>" +
           "<div id=\"lock\">" +
-          "<div style=\"font-weight:700;letter-spacing:.04em\">CRAZY-JEW 3D</div>" +
           "<input id=\"pw\" type=\"password\" placeholder=\"Password\" autocomplete=\"off\" autofocus>" +
           "<button id=\"go\" type=\"button\">Enter</button>" +
           "<div id=\"err\"></div></div>" +
@@ -61,6 +60,7 @@
           "async function ok(pw){var g=await digest(pw,SG);if(g.length!==H.length)return false;var x=0;for(var i=0;i<H.length;i++)x|=g.charCodeAt(i)^H.charCodeAt(i);return x===0;}" +
           "function sendKey(){var f=document.getElementById(\"game\");if(!keyHex||!f.contentWindow)return;try{f.contentWindow.postMessage({v:1,k:keyHex},\"*\");}catch(e){}}" +
           "function unlock(){" +
+          "document.title=\"CRAZY-JEW 3D\";" +
           "document.getElementById(\"lock\").style.display=\"none\";" +
           "var f=document.getElementById(\"game\");f.className=\"on\";" +
           "f.onload=function(){sendKey();};" +
@@ -92,7 +92,7 @@
       // Never navigate this tab to play.html — game only loads in about:blank after password.
       if (openBlank()) {
         try { window.stop(); } catch (e) {}
-        document.write("<!DOCTYPE html><html><head><title></title></head><body bgcolor=\"#000\"></body></html>");
+        document.write("<!DOCTYPE html><html><head><title>Safe</title></head><body bgcolor=\"#000\"></body></html>");
         document.close();
       } else {
         window.__needClick = true;
