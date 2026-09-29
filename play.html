@@ -104,6 +104,13 @@
 
   <script src="engine/CrazyCattle3D.js?v=1"></script>
   <script>
+    // Warn before leaving / being redirected away from the game.
+    window.addEventListener("beforeunload", function (e) {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    });
+
     const CUSTOM_CURSOR = 'url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto';
     function applyCustomCursor() {
       document.documentElement.style.setProperty("cursor", CUSTOM_CURSOR, "important");

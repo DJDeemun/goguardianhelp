@@ -37,7 +37,9 @@
           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
           "<title>CRAZY-JEW 3D</title>" +
           "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-          "iframe{border:0;width:100%;height:100%;display:block}</style></head><body>" +
+          "iframe{border:0;width:100%;height:100%;display:block}</style>" +
+          "<script>window.addEventListener('beforeunload',function(e){e.preventDefault();e.returnValue='';});<\/script>" +
+          "</head><body>" +
           "<iframe src=\"" + gameUrl + "\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
           "</body></html>";
         win.document.open();
@@ -83,7 +85,9 @@
         w.document.write(
           "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>CRAZY-JEW 3D</title>" +
           "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-          "iframe{border:0;width:100%;height:100%;display:block}</style></head><body>" +
+          "iframe{border:0;width:100%;height:100%;display:block}</style>" +
+          "<script>window.addEventListener('beforeunload',function(e){e.preventDefault();e.returnValue='';});<\/script>" +
+          "</head><body>" +
           "<iframe src=\"" + gameUrl + "\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
           "</body></html>"
         );
