@@ -12,7 +12,6 @@
       background: #000;
       color: #fff;
       font-family: Arial, Helvetica, sans-serif;
-      cursor: pointer;
       user-select: none;
     }
     #gate {
@@ -24,45 +23,80 @@
       padding: 2rem;
       font-size: 1.25rem;
       font-weight: 700;
+      cursor: pointer;
     }
     #gate.show { display: flex; }
   </style>
   <script>
     (function () {
-      var gameUrl = new URL("play.html", location.href).href;
+      var H = ["d7086077", "c6859ad9", "8eb1ba6c", "9dc45b9c", "60d46378", "337d8a86", "810853c5", "17cfa431"].join("");
 
-      function writeGame(win) {
-        var html =
+      function blankShellHtml(gameUrl) {
+        return (
           "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
           "<title>CRAZY-JEW 3D</title>" +
-          "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-          "iframe{border:0;width:100%;height:100%;display:block}</style>" +
-          "<script>window.addEventListener('beforeunload',function(e){e.preventDefault();e.returnValue='';});<\/script>" +
-          "</head><body>" +
-          "<iframe src=\"" + gameUrl + "\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
-          "</body></html>";
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
+          "<style>" +
+          "html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}" +
+          "#lock{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#000;z-index:9}" +
+          "input,button{font:inherit;padding:10px 14px;border:1px solid #444;background:#111;color:#fff}" +
+          "button{cursor:pointer;background:#fff;color:#000;border-color:#fff;font-weight:700}" +
+          "#err{min-height:1.2em;color:#f66;font-size:14px}" +
+          "iframe{border:0;width:100%;height:100%;display:none}iframe.on{display:block}" +
+          "</style></head><body>" +
+          "<div id=\"lock\">" +
+          "<div style=\"font-weight:700;letter-spacing:.04em\">CRAZY-JEW 3D</div>" +
+          "<input id=\"pw\" type=\"password\" placeholder=\"Password\" autocomplete=\"off\" autofocus>" +
+          "<button id=\"go\" type=\"button\">Enter</button>" +
+          "<div id=\"err\"></div></div>" +
+          "<iframe id=\"game\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
+          "<script>(function(){" +
+          "var H=\"" + H + "\";" +
+          "var SG=\"|cj3d-gate-v1\";" +
+          "var SA=\"|cj3d-aes-v1\";" +
+          "var gameUrl=" + JSON.stringify(gameUrl) + ";" +
+          "var keyHex=null;" +
+          "function toHex(buf){var u=new Uint8Array(buf),o=\"\";for(var i=0;i<u.length;i++)o+=u[i].toString(16).padStart(2,\"0\");return o;}" +
+          "async function digest(pw,salt){return toHex(await crypto.subtle.digest(\"SHA-256\",new TextEncoder().encode(String(pw)+salt)));}" +
+          "async function ok(pw){var g=await digest(pw,SG);if(g.length!==H.length)return false;var x=0;for(var i=0;i<H.length;i++)x|=g.charCodeAt(i)^H.charCodeAt(i);return x===0;}" +
+          "function sendKey(){var f=document.getElementById(\"game\");if(!keyHex||!f.contentWindow)return;try{f.contentWindow.postMessage({v:1,k:keyHex},\"*\");}catch(e){}}" +
+          "function unlock(){" +
+          "document.getElementById(\"lock\").style.display=\"none\";" +
+          "var f=document.getElementById(\"game\");f.className=\"on\";" +
+          "f.onload=function(){sendKey();};" +
+          "f.src=gameUrl;" +
+          "window.addEventListener(\"beforeunload\",function(e){e.preventDefault();e.returnValue=\"\";});" +
+          "}" +
+          "window.addEventListener(\"message\",function(e){if(e.data&&e.data.v===1&&e.data.need)sendKey();});" +
+          "async function tryUnlock(){" +
+          "var pw=document.getElementById(\"pw\").value,err=document.getElementById(\"err\");err.textContent=\"\";" +
+          "try{if(!(await ok(pw))){err.textContent=\"Wrong password\";document.getElementById(\"pw\").value=\"\";document.getElementById(\"pw\").focus();return;}" +
+          "keyHex=await digest(pw,SA);document.getElementById(\"pw\").value=\"\";unlock();}catch(e){err.textContent=\"Unlock failed\";}" +
+          "}" +
+          "document.getElementById(\"go\").onclick=tryUnlock;" +
+          "document.getElementById(\"pw\").addEventListener(\"keydown\",function(e){if(e.key===\"Enter\")tryUnlock();});" +
+          "})();<\/script></body></html>"
+        );
       }
 
       function openBlank() {
+        var gameUrl = new URL("play.html", location.href).href;
         var w = window.open("about:blank", "_blank");
         if (!w) return false;
-        writeGame(w);
+        w.document.open();
+        w.document.write(blankShellHtml(gameUrl));
+        w.document.close();
         return true;
       }
 
-      // Run immediately during parse (best chance of beating the popup blocker
-      // when this page was opened by a click / start-server).
+      // Never navigate this tab to play.html — game only loads in about:blank after password.
       if (openBlank()) {
-        // Leave this tab empty so only about:blank remains useful.
         try { window.stop(); } catch (e) {}
-        document.write("<html><head><title></title></head><body bgcolor=\"#000\"></body></html>");
+        document.write("<!DOCTYPE html><html><head><title></title></head><body bgcolor=\"#000\"></body></html>");
         document.close();
       } else {
         window.__needClick = true;
+        window.__blankShellHtml = blankShellHtml;
       }
     })();
   </script>
@@ -75,29 +109,20 @@
       var gate = document.getElementById("gate");
       gate.className = "show";
       function go() {
-        var gameUrl = new URL("play.html", location.href).href;
         var w = window.open("about:blank", "_blank");
         if (!w) {
-          location.href = gameUrl;
+          gate.textContent = "Allow pop-ups, then click again";
           return;
         }
+        var gameUrl = new URL("play.html", location.href).href;
         w.document.open();
-        w.document.write(
-          "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>CRAZY-JEW 3D</title>" +
-          "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-          "iframe{border:0;width:100%;height:100%;display:block}</style>" +
-          "<script>window.addEventListener('beforeunload',function(e){e.preventDefault();e.returnValue='';});<\/script>" +
-          "</head><body>" +
-          "<iframe src=\"" + gameUrl + "\" allow=\"autoplay; fullscreen; gamepad; keyboard-map\" allowfullscreen></iframe>" +
-          "</body></html>"
-        );
+        w.document.write(window.__blankShellHtml(gameUrl));
         w.document.close();
         document.body.innerHTML = "";
         document.body.style.background = "#000";
       }
       gate.addEventListener("click", go);
       document.addEventListener("click", go, { once: true });
-      document.addEventListener("keydown", go, { once: true });
     })();
   </script>
 </body>

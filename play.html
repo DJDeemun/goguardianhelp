@@ -22,12 +22,8 @@
       touch-action: none;
       font-family: Arial, sans-serif;
     }
-    #canvas {
-      display: block;
-    }
-    #canvas:focus {
-      outline: none;
-    }
+    #canvas { display: block; }
+    #canvas:focus { outline: none; }
     * {
       cursor: url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto !important;
     }
@@ -58,9 +54,7 @@
       width: 100%;
       object-fit: contain;
     }
-    #status-progress, #status-notice {
-      display: none;
-    }
+    #status-progress, #status-notice { display: none; }
     #status-progress {
       bottom: 10%;
       width: 50%;
@@ -100,159 +94,221 @@
     <progress id="status-progress"></progress>
     <div id="status-notice"></div>
   </div>
-  <div id="hint">If you still see the old sky/title: DevTools â†’ Application â†’ Storage â†’ Clear site data, then reload this page.</div>
+  <div id="hint">If you still see the old sky/title: DevTools → Application → Storage → Clear site data, then reload this page.</div>
 
-  <script src="engine/CrazyCattle3D.js?v=1"></script>
   <script>
-    // Warn before leaving / being redirected away from the game.
-    window.addEventListener("beforeunload", function (e) {
-      e.preventDefault();
-      e.returnValue = "";
-      return "";
-    });
-
-    const CUSTOM_CURSOR = 'url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto';
-    function applyCustomCursor() {
-      document.documentElement.style.setProperty("cursor", CUSTOM_CURSOR, "important");
-      document.body.style.setProperty("cursor", CUSTOM_CURSOR, "important");
-      const canvas = document.getElementById("canvas");
-      if (canvas) canvas.style.setProperty("cursor", CUSTOM_CURSOR, "important");
-    }
-    applyCustomCursor();
-    setInterval(applyCustomCursor, 500);
-
-    const PCK_SIZE = 55007297;
-    const WASM_SIZE = 43444261;
-    // Brand-new pack URL â€” Chrome cannot reuse the old CrazyCattle3D.pck cache entry.
-    const MAIN_PACK = "engine/CrazyJew3D.pck";
-
-    const GODOT_CONFIG = {
-      args: [],
-      canvasResizePolicy: 2,
-      ensureCrossOriginIsolationHeaders: false,
-      executable: "engine/CrazyCattle3D",
-      mainPack: MAIN_PACK,
-      experimentalVK: false,
-      fileSizes: {
-        [MAIN_PACK]: PCK_SIZE,
-        "engine/CrazyCattle3D.wasm": WASM_SIZE
-      },
-      focusCanvas: true,
-      gdextensionLibs: [],
-      serviceWorker: null
-    };
-
-    const GODOT_THREADS_ENABLED = false;
-    const engine = new Engine(GODOT_CONFIG);
-
-    function deleteDb(name) {
-      return new Promise((resolve) => {
-        try {
-          const req = indexedDB.deleteDatabase(name);
-          req.onsuccess = req.onerror = req.onblocked = () => resolve();
-        } catch (_) {
-          resolve();
-        }
-      });
-    }
-
-    async function bustCaches() {
-      // Unregister any service workers for this origin
-      try {
-        if (navigator.serviceWorker) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.unregister()));
-        }
-      } catch (_) {}
-
-      try {
-        if (window.caches) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k)));
-        }
-      } catch (_) {}
-
-      // Chrome / Edge: wipe Godot IDBFS + any other DBs on this origin
-      const known = ["/userfs", "userfs", "godot-userfs", "Godot", "emscripten"];
-      try {
-        if (indexedDB.databases) {
-          const dbs = await indexedDB.databases();
-          for (const d of dbs || []) {
-            if (d && d.name) known.push(d.name);
-          }
-        }
-      } catch (_) {}
-      await Promise.all([...new Set(known)].map(deleteDb));
-    }
-
     (function () {
-      const statusOverlay = document.getElementById("status");
-      const statusProgress = document.getElementById("status-progress");
-      const statusNotice = document.getElementById("status-notice");
-      const hint = document.getElementById("hint");
-
-      let initializing = true;
-      let statusMode = "";
-
-      function setStatusMode(mode) {
-        if (statusMode === mode || !initializing) return;
-        if (mode === "hidden") {
-          statusOverlay.remove();
-          if (hint) hint.remove();
-          initializing = false;
-          return;
-        }
-        statusOverlay.style.visibility = "visible";
-        statusProgress.style.display = mode === "progress" ? "block" : "none";
-        statusNotice.style.display = mode === "notice" ? "block" : "none";
-        statusMode = mode;
-      }
-
-      function setStatusNotice(text) {
-        statusNotice.textContent = "";
-        String(text).split("\n").forEach((line) => {
-          statusNotice.appendChild(document.createTextNode(line));
-          statusNotice.appendChild(document.createElement("br"));
-        });
-      }
-
-      function displayFailureNotice(err) {
-        console.error(err);
-        if (err instanceof Error) setStatusNotice(err.message);
-        else if (typeof err === "string") setStatusNotice(err);
-        else setStatusNotice("An unknown error occurred.");
-        setStatusMode("notice");
-        initializing = false;
-      }
-
-      const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
-      if (missing.length !== 0) {
-        displayFailureNotice(
-          "Error\nThe following features required to run this game are missing:\n" +
-            missing.join("\n")
-        );
+      // Top-level play.html is blocked — only about:blank iframe after password.
+      if (window.top === window.self) {
+        location.replace("index.html");
         return;
       }
 
-      setStatusMode("progress");
-      bustCaches()
-        .catch(() => {})
-        .then(() =>
-          engine.startGame({
-            onProgress(current, total) {
-              if (current > 0 && total > 0) {
-                statusProgress.value = current;
-                statusProgress.max = total;
-              } else {
-                statusProgress.removeAttribute("value");
-                statusProgress.removeAttribute("max");
-              }
+      const BLOB = [
+        "50242ce68e01", "24be55be0994", "072e1de00752", "a28973ebbd26",
+        "55d737c774d9", "11f1ea0f4f6e", "d6067b93d6cd"
+      ].join("");
+
+      function hexToBuf(hex) {
+        const n = hex.length / 2;
+        const out = new Uint8Array(n);
+        for (let i = 0; i < n; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+        return out;
+      }
+
+      async function unlockWithKey(keyHex) {
+        if (typeof keyHex !== "string" || keyHex.length !== 64) return false;
+        try {
+          const key = await crypto.subtle.importKey(
+            "raw",
+            hexToBuf(keyHex),
+            "AES-GCM",
+            false,
+            ["decrypt"]
+          );
+          const blob = hexToBuf(BLOB);
+          const iv = blob.slice(0, 12);
+          const data = blob.slice(12);
+          const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+          return new TextDecoder().decode(plain) === "CJ3D_UNLOCK_V1";
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function loadEngineScript() {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "engine/CrazyCattle3D.js?v=1";
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      function deleteDb(name) {
+        return new Promise((resolve) => {
+          try {
+            const req = indexedDB.deleteDatabase(name);
+            req.onsuccess = req.onerror = req.onblocked = () => resolve();
+          } catch (_) {
+            resolve();
+          }
+        });
+      }
+
+      async function bustCaches() {
+        try {
+          if (navigator.serviceWorker) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          }
+        } catch (_) {}
+        try {
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+          }
+        } catch (_) {}
+        const known = ["/userfs", "userfs", "godot-userfs", "Godot", "emscripten"];
+        try {
+          if (indexedDB.databases) {
+            const dbs = await indexedDB.databases();
+            for (const d of dbs || []) {
+              if (d && d.name) known.push(d.name);
             }
-          })
-        )
-        .then(() => setStatusMode("hidden"), displayFailureNotice);
+          }
+        } catch (_) {}
+        await Promise.all([...new Set(known)].map(deleteDb));
+      }
+
+      async function startGame() {
+        window.addEventListener("beforeunload", function (e) {
+          e.preventDefault();
+          e.returnValue = "";
+          return "";
+        });
+
+        const CUSTOM_CURSOR =
+          'url("assets/cursor-active.png") 0 0, url("assets/cursor.png") 32 32, auto';
+        function applyCustomCursor() {
+          document.documentElement.style.setProperty("cursor", CUSTOM_CURSOR, "important");
+          document.body.style.setProperty("cursor", CUSTOM_CURSOR, "important");
+          const canvas = document.getElementById("canvas");
+          if (canvas) canvas.style.setProperty("cursor", CUSTOM_CURSOR, "important");
+        }
+        applyCustomCursor();
+        setInterval(applyCustomCursor, 500);
+
+        await loadEngineScript();
+
+        const PCK_SIZE = 55007297;
+        const WASM_SIZE = 43444261;
+        const MAIN_PACK = "engine/CrazyJew3D.pck";
+        const GODOT_CONFIG = {
+          args: [],
+          canvasResizePolicy: 2,
+          ensureCrossOriginIsolationHeaders: false,
+          executable: "engine/CrazyCattle3D",
+          mainPack: MAIN_PACK,
+          experimentalVK: false,
+          fileSizes: {
+            [MAIN_PACK]: PCK_SIZE,
+            "engine/CrazyCattle3D.wasm": WASM_SIZE
+          },
+          focusCanvas: true,
+          gdextensionLibs: [],
+          serviceWorker: null
+        };
+
+        const engine = new Engine(GODOT_CONFIG);
+        const statusOverlay = document.getElementById("status");
+        const statusProgress = document.getElementById("status-progress");
+        const statusNotice = document.getElementById("status-notice");
+        const hint = document.getElementById("hint");
+
+        let initializing = true;
+        let statusMode = "";
+
+        function setStatusMode(mode) {
+          if (statusMode === mode || !initializing) return;
+          if (mode === "hidden") {
+            statusOverlay.remove();
+            if (hint) hint.remove();
+            initializing = false;
+            return;
+          }
+          statusOverlay.style.visibility = "visible";
+          statusProgress.style.display = mode === "progress" ? "block" : "none";
+          statusNotice.style.display = mode === "notice" ? "block" : "none";
+          statusMode = mode;
+        }
+
+        function setStatusNotice(text) {
+          statusNotice.textContent = "";
+          String(text).split("\n").forEach((line) => {
+            statusNotice.appendChild(document.createTextNode(line));
+            statusNotice.appendChild(document.createElement("br"));
+          });
+        }
+
+        function displayFailureNotice(err) {
+          console.error(err);
+          if (err instanceof Error) setStatusNotice(err.message);
+          else if (typeof err === "string") setStatusNotice(err);
+          else setStatusNotice("An unknown error occurred.");
+          setStatusMode("notice");
+          initializing = false;
+        }
+
+        const missing = Engine.getMissingFeatures({ threads: false });
+        if (missing.length !== 0) {
+          displayFailureNotice(
+            "Error\nThe following features required to run this game are missing:\n" +
+              missing.join("\n")
+          );
+          return;
+        }
+
+        setStatusMode("progress");
+        bustCaches()
+          .catch(() => {})
+          .then(() =>
+            engine.startGame({
+              onProgress(current, total) {
+                if (current > 0 && total > 0) {
+                  statusProgress.value = current;
+                  statusProgress.max = total;
+                } else {
+                  statusProgress.removeAttribute("value");
+                  statusProgress.removeAttribute("max");
+                }
+              }
+            })
+          )
+          .then(() => setStatusMode("hidden"), displayFailureNotice);
+      }
+
+      let started = false;
+      async function onKey(keyHex) {
+        if (started) return;
+        if (!(await unlockWithKey(keyHex))) return;
+        started = true;
+        window.removeEventListener("message", onMsg);
+        startGame();
+      }
+
+      function onMsg(e) {
+        if (e.source !== window.parent) return;
+        if (!e.data || e.data.v !== 1 || !e.data.k) return;
+        onKey(e.data.k);
+      }
+
+      window.addEventListener("message", onMsg);
+      try {
+        window.parent.postMessage({ v: 1, need: 1 }, "*");
+      } catch (_) {}
     })();
   </script>
 </body>
 </html>
-
